@@ -1,0 +1,40 @@
+version: "3.8"
+services:
+  gymtime-db:
+    build: ./gymtime-db
+    image: gymtime-db:5.0.0-compose
+    ports:
+      - "3306:3306"
+    volumes:
+      - mydata:/var/lib/db
+      - ./gymtime-db/init:/docker-entrypoint-initdb.d
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 256M
+    restart: always
+
+  gymtime-core:
+    build: ./gymtime-core
+    image: gymtime-core:5.0.0-compose
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_URL=gymtime-db
+      - DB_PORT=3306
+      - DB_NAME=gymdb
+      - DB_USERNAME=myuser
+      - DB_PASSWORD=mypassword
+      - REDIS_PORT=6379
+    depends_on:
+      - gymtime-db
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 512M
+    restart: on-failure
+
+volumes:
+  mydata:
