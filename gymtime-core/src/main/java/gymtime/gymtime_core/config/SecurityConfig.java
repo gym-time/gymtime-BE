@@ -1,11 +1,15 @@
 package gymtime.gymtime_core.config;
 
+import gymtime.gymtime_core.auth.handler.CustomAuthenticationSuccessHandler;
 import gymtime.gymtime_core.auth.jwt.JwtFilter;
 import gymtime.gymtime_core.auth.jwt.JwtUtil;
 import gymtime.gymtime_core.auth.jwt.LoginFilter;
+import gymtime.gymtime_core.auth.oauth2.handler.CustomSuccessHandler;
+import gymtime.gymtime_core.auth.oauth2.service.CustomOAuth2UserService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -26,11 +30,15 @@ public class SecurityConfig {
 
     private final AuthenticationConfiguration authenticationConfiguration;
     private final JwtUtil jwtUtil;
+    private final CustomOAuth2UserService oAuth2UserService;
+    private final CustomSuccessHandler customSuccessHandler;
 
 
-    public SecurityConfig(AuthenticationConfiguration authenticationConfiguration, JwtUtil jwtUtil) {
+    public SecurityConfig(AuthenticationConfiguration authenticationConfiguration, JwtUtil jwtUtil, CustomOAuth2UserService oAuth2UserService, CustomSuccessHandler customSuccessHandler) {
         this.authenticationConfiguration = authenticationConfiguration;
         this.jwtUtil = jwtUtil;
+        this.oAuth2UserService = oAuth2UserService;
+        this.customSuccessHandler = customSuccessHandler;
     }
 
     @Bean
@@ -56,20 +64,31 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http, CustomOAuth2UserService customOAuth2UserService) throws Exception {
+        LoginFilter loginFilter = new LoginFilter(authenticationManager(authenticationConfiguration), jwtUtil);
+        loginFilter.setFilterProcessesUrl("/api/login");
+
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests((auth) -> auth
-                        .requestMatchers("/join", "/**", "/login").permitAll()
-                        .requestMatchers("/business").hasRole("BUSINESS")
-                        .requestMatchers("/customer").hasRole("CUSTOMER")
+                        .requestMatchers("/", "/api/user/login", "/api/user/join").permitAll()
+                        .requestMatchers("/", "/oauth2/**", "/login/**").permitAll()
+                        .requestMatchers("/business/**").hasRole("BUSINESS")
+                        .requestMatchers("/customer/**").hasRole("CUSTOMER")
                         .anyRequest().authenticated())
-                .formLogin((auth) -> auth.loginPage("/login").permitAll())
-                .addFilterBefore(new JwtFilter(jwtUtil), LoginFilter.class)
-                .addFilterAt(new LoginFilter(authenticationManager(authenticationConfiguration), jwtUtil), UsernamePasswordAuthenticationFilter.class)
+                .oauth2Login((oauth2) -> oauth2
+                        .userInfoEndpoint((userInfoEndpointConfig) -> userInfoEndpointConfig
+                                .userService(customOAuth2UserService))
+                        .successHandler(customSuccessHandler))
+                .logout(logout -> logout
+                        .logoutUrl("logout")
+                        .logoutSuccessHandler((request, response, authentication) -> response.sendRedirect("/login"))
+                        .deleteCookies("JSESSIONID"))
+                .addFilterAfter(new JwtFilter(jwtUtil), LoginFilter.class)
+                .addFilterAt(loginFilter, UsernamePasswordAuthenticationFilter.class)
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 );

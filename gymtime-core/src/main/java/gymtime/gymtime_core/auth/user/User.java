@@ -7,6 +7,7 @@ import java.time.LocalDate;
 
 @Entity
 @Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -19,11 +20,11 @@ public class User {
     private Long id;
 
     @Setter
-    @Column(nullable = false, unique = true, length = 30)
+    @Column(nullable = false, unique = true, length = 100)
     private String loginId;
 
     @Setter
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String password;
 
     @Column(nullable = false)
@@ -32,7 +33,7 @@ public class User {
     @Column(nullable = false, unique = true, length = 30)
     private String email;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String phoneNum;
 
     @Enumerated(EnumType.STRING)

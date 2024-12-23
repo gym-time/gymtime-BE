@@ -7,6 +7,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -16,10 +17,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-
+@Slf4j
 public class JwtFilter extends OncePerRequestFilter {
 
-    private static final Logger logger = LoggerFactory.getLogger(JwtFilter.class);
     private final JwtUtil jwtUtil;
 
     public JwtFilter(JwtUtil jwtUtil) {
@@ -33,7 +33,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
         // 토큰 유효성 검증
         if (authorization == null || !authorization.startsWith("Bearer ")) {
-            logger.info("Authorization header is missing or invalid");
+            log.info("인증 헤더가 없거나 잘못되었습니다");
             filterChain.doFilter(request, response);
             return;
         }
@@ -43,7 +43,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
         //토큰 소멸 시간 검증
         if (jwtUtil.isExpired(token)) {
-            logger.warn("Token is expired");
+            log.warn("토큰이 만료되었습니다\n");
             filterChain.doFilter(request, response);
             return;
         }
@@ -51,7 +51,7 @@ public class JwtFilter extends OncePerRequestFilter {
         try {
             authenticateUser(token);
         } catch (Exception e) {
-            logger.error("Authentication failed: {}", e.getMessage());
+            log.error("인증 실패: {}", e.getMessage());
             filterChain.doFilter(request, response);
             return;
         }
@@ -69,7 +69,7 @@ public class JwtFilter extends OncePerRequestFilter {
         user.setUserType(userType);
 
         //UserDetails에 회원 정보 객체 담기
-        CustomUserDetails customUserDetails = new CustomUserDetails(user);
+        CustomUserDetails customUserDetails = new CustomUserDetails(user,true);
         //스프링 시큐리티 인증 토큰 생성
         Authentication authToken = new UsernamePasswordAuthenticationToken(customUserDetails, null, customUserDetails.getAuthorities());
         //세션에 사용자 등록

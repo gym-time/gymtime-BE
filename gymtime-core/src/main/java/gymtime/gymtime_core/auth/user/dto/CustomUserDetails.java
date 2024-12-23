@@ -1,19 +1,26 @@
 package gymtime.gymtime_core.auth.user.dto;
 
 import gymtime.gymtime_core.auth.user.User;
+import gymtime.gymtime_core.auth.user.UserType;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Map;
 
-public class CustomUserDetails implements UserDetails {
+@RequiredArgsConstructor
+public class CustomUserDetails implements UserDetails, OAuth2User {
 
     private final User user;
+    private final boolean isFirst;
 
-    public CustomUserDetails(User user) {
-        this.user = user;
+    @Override
+    public Map<String, Object> getAttributes() {
+        return Map.of();
     }
 
     @Override
@@ -51,5 +58,18 @@ public class CustomUserDetails implements UserDetails {
     @Override
     public boolean isEnabled() {
         return true;
+    }
+
+    @Override
+    public String getName() {
+        return "";
+    }
+
+    public UserType getUserType() {
+        return user.getUserType();
+    }
+
+    public boolean isFirst() {
+        return isFirst;
     }
 }

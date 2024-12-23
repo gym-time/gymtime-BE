@@ -31,10 +31,9 @@ public class JwtUtil {
         return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload().getExpiration().before(new Date());
     }
 
-    public String createJwt(String username, UserType userType, Long expiredMs) {
-
+    public String createJwt(String loginId, UserType userType, Long expiredMs) {
         return Jwts.builder()
-                .claim("loginId", username)
+                .claim("loginId", loginId)
                 .claim("userType", userType)
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + expiredMs))
